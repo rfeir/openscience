@@ -2,14 +2,14 @@
 # setting things up
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+import polars as pl
 import pandas as pd
 import os
-
-import pandas as pd
 from dotenv import load_dotenv
 from fredapi import Fred
 
-load_dotenv()
+load_dotenv() # This lets me use local API keys. Replace below or set up your
+              # env
 
 fred = Fred(api_key=os.environ["FRED_API_KEY"])
 
@@ -27,16 +27,16 @@ cpi_2025_avg = cpi["2025"].mean()
 deflator = cpi_2025_avg / cpi
 
 # WTI crude oil price, daily
-wti_daily = fred.get_series("DCOILWTICO")
+wti_monthly = fred.get_series("MCOILWTICO")
 
-wti_daily_df = (
-    wti_daily
+wti_monthly_df = (
+    wti_monthly
     .rename("wti_price")
     .reset_index()
     .rename(columns={"index": "date"})
 )
 
-print(wti_daily_df.head())
-print(wti_daily_df.tail())
+print(wti_monthly_df.head())
+print(wti_monthly_df.tail())
 
 wti_daily_df.to_csv("wti_daily.csv", index=False)
