@@ -1,5 +1,13 @@
 .env
+*.env
 .venv/
 __pycache__/
 *.pyc
 *.csv
+*.xlsx
+*.xls
+!data/public/
+!data/public/**
+tmp/
+AGENT.md
+
