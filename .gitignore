@@ -9,5 +9,4 @@ __pycache__/
 !data/public/
 !data/public/**
 tmp/
-AGENT.md
-
+childcare/

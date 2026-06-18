@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 load_dotenv() # This lets me use local API keys. Replace below or set up your
               # env
 
-plt.style.use('ricky_mocha')
+plt.style.use('ricky_mocha') # again, this is a custom colorschme. Comment out.
 
 fred = Fred(api_key=os.environ["FRED_API_KEY"]) # replace with your key
 

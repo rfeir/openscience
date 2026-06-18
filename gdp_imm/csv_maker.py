@@ -7,7 +7,7 @@
 # the original data source. There are ways to get the BEA tables through
 # downloading tables if you don't want to bother with getting an API. I'm
 # sharing this for replication/editing purposes. You will also need to insert
-# your own paths or APIs in the place of anythign with "os.environ['']". 
+# your own paths or APIs in the place of anything with "os.environ['']". 
 
 
 #                                DATA SOURCES
@@ -409,10 +409,10 @@ gdp_df["gdp_chained"] = pd.to_numeric(gdp_df["gdp_chained"], errors="coerce")
 valid_states = reg_long["st"].astype(str).str.zfill(2).unique()
 gdp_df = gdp_df[gdp_df["st"].isin(valid_states)].copy()
 
-private_gdp = (
+r_priv_gdp = (
     gdp_df[gdp_df["linecode"].eq(2)]
     [["st", "year", "gdp_chained"]]
-    .rename(columns={"gdp_chained": "private_gdp"})
+    .rename(columns={"gdp_chained": "r_priv_gdp"})
     .copy()
 )
 
@@ -481,7 +481,7 @@ sector_wide = sector_wide[
 
 # Add total/private GDP
 sector_wide = sector_wide.merge(
-    private_gdp,
+    r_priv_gdp,
     on=["st", "year"],
     how="left",
     validate="1:1"
@@ -489,7 +489,7 @@ sector_wide = sector_wide.merge(
 
 # check against private GDP
 sector_wide["perc_dif"] = (
-    sector_wide["supersector_gdp_sum"] / sector_wide["private_gdp"] - 1
+    sector_wide["supersector_gdp_sum"] / sector_wide["r_priv_gdp"] - 1
 )
 
 reg_long = (
