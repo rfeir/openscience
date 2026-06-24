@@ -178,59 +178,67 @@ ln_r_priv_gdp ~ ln_domestics_c + h_ln_domestics_c_2 + ln_domestics_c_t
 ols = smf.ols(formula=formula, data=df)
 
 groups = (
-    df.loc[ols.data.row_labels, ["st", "year"]]
-      .apply(lambda x: pd.Categorical(x).codes)
-      .to_numpy()
+  df.loc[ols.data.row_labels, ["st", "year"]]
+  .apply(lambda x: pd.Categorical(x).codes)
+  .to_numpy()
 )
 
+model_dict = {}
+
 model_gdp_cse = ols.fit(
-    cov_type="cluster",
-    cov_kwds={"groups": groups}
+  cov_type="cluster",
+  cov_kwds={"groups": groups}
 )
 
 print(model_gdp_cse.summary())
+
+model_dict["model_gdp_cse"] = {
+  "model": model_gdp_cse,
+  "resid": "ln_r_priv_gdp_cse_resid"
+}
+
 model_gdp = smf.ols(formula=formula, data=df).fit()
 
 # Coefficient table
 results_df = pd.DataFrame({
-    "term": model_gdp_cse.params.index,
-    "coef": model_gdp_cse.params.values,
-    "std_err": model_gdp_cse.bse.values,
-    "t": model_gdp_cse.tvalues.values,
-    "p_value": model_gdp_cse.pvalues.values,
-    "ci_lower": model_gdp_cse.conf_int()[0].values,
-    "ci_upper": model_gdp_cse.conf_int()[1].values
+  "term": model_gdp_cse.params.index,
+  "coef": model_gdp_cse.params.values,
+  "std_err": model_gdp_cse.bse.values,
+  "t": model_gdp_cse.tvalues.values,
+  "p_value": model_gdp_cse.pvalues.values,
+  "ci_lower": model_gdp_cse.conf_int()[0].values,
+  "ci_upper": model_gdp_cse.conf_int()[1].values
 })
 
 # Model-level statistics
 model_stats = pd.DataFrame({
-    "term": [
-        "N",
-        "R_squared",
-        "Adj_R_squared",
-        "F_statistic",
-        "F_p_value",
-        "AIC",
-        "BIC",
-        "df_model",
-        "df_resid"
-    ],
-    "coef": [
-        int(model_gdp_cse.nobs),
-        model_gdp_cse.rsquared,
-        model_gdp_cse.rsquared_adj,
-        model_gdp_cse.fvalue,
-        model_gdp_cse.f_pvalue,
-        model_gdp_cse.aic,
-        model_gdp_cse.bic,
-        model_gdp_cse.df_model,
-        model_gdp_cse.df_resid
-    ],
-    "std_err": "",
-    "t": "",
-    "p_value": "",
-    "ci_lower": "",
-    "ci_upper": ""
+  "term": [
+    "N",
+    "R_squared",
+    "Adj_R_squared",
+    "F_statistic",
+    "F_p_value",
+    "AIC",
+    "BIC",
+    "df_model",
+    "df_resid"
+  ],
+  "coef": [
+    int(model_gdp_cse.nobs),
+    model_gdp_cse.rsquared,
+    model_gdp_cse.rsquared_adj,
+    model_gdp_cse.fvalue,
+    model_gdp_cse.f_pvalue,
+    model_gdp_cse.aic,
+    model_gdp_cse.bic,
+    model_gdp_cse.df_model,
+    model_gdp_cse.df_resid
+  ],
+  "std_err": "",
+  "t": "",
+  "p_value": "",
+  "ci_lower": "",
+  "ci_upper": ""
 })
 
 # Combine and export
@@ -243,23 +251,15 @@ export_df.to_csv("Reg_6_12_24.csv", index=False)
 # Graph Inspection
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-model_dict = {
-    "model_gdp_cse": {
-        "model": model_gdp_cse,
-        "resid": "ln_r_priv_gdp_resid"
-    },
-    "model_gdpfe": {
-        "model": model_gdpfe,
-        "resid": "ln_r_priv_gdp_resid"
-    },
-}
-
 #%% --- Select Model and Run  
 
-model_name = "model_gdpfe"   # choose: "model_dom", "model_imm",
+model_name = "model_gdp_fe"   # choose: "model_gdp_cse", "model_gdp_fe"
 
 model = model_dict[model_name]["model"]
 var = model_dict[model_name]["resid"]
+
+plot_df = df.loc[model.model.data.row_labels].copy()
+plot_df[var] = model.resid
 
 #%% --- Graph Inspection
 
@@ -278,7 +278,7 @@ plt.show()
 plt.close('all')
 
 #%%
-plt.plot(df["t"], model.resid, 'o', alpha=0.2)
+plt.plot(plot_df["t"], plot_df[var], 'o', alpha=0.2)
 plt.axhline(0, color='white', linestyle='--')
 plt.xlabel("Time (t)")
 plt.ylabel("Residuals")
@@ -287,7 +287,7 @@ plt.show()
 plt.close('all')
 
 #%%
-state_means = df.groupby("st")[var].mean()
+state_means = plot_df.groupby("st")[var].mean()
 state_means.plot(kind='bar', fontsize=8)
 plt.title("Mean Residual by State")
 plt.axhline(0, color='white', linestyle='--')
@@ -362,11 +362,15 @@ ln_r_priv_gdp ~ ln_domestics_c + h_ln_domestics_c_2
 state_codes = df["st"].astype("category").cat.codes
 year_codes  = df["year"].astype("category").cat.codes
 
-model_gdpfe = smf.ols(formula=formula, data=df).fit(
-    cov_type="cluster",
-    cov_kwds={"groups": [state_codes, year_codes]}
+model_gdp_fe = smf.ols(formula=formula, data=df).fit(
+  cov_type="cluster",
+  cov_kwds={"groups": [state_codes, year_codes]}
 )
 
-print(model_gdpfe.summary())
+print(model_gdp_fe.summary())
 
+model_dict["model_gdp_fe"] = {
+  "model": model_gdp_fe,
+  "resid": "ln_r_priv_gdp_fe_resid"
+}
 

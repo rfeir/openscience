@@ -8,6 +8,10 @@ __pycache__/
 *.xls
 *.pdf
 *.png
+*.zip
+*.dat
+*.dta
+*.dct
 !data/public/
 !data/public/**
 tmp/
