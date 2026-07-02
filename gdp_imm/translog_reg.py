@@ -11,7 +11,7 @@ plt.style.use("ricky_mocha")
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # created by csv_maker.py file, which contains data sources and loading.
-df = pd.read_csv("data/public/reg_data_2005_2023.csv")
+df = pd.read_csv("data/public/gdp_imm_2005_2023.csv")
 
 
 #%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
