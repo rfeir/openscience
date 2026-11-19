@@ -1,0 +1,18 @@
+# North Dakota childcare policy-brief reproducibility
+# Python 3.10+ (Python 3.11 or 3.12 recommended)
+# Install: python -m pip install -r requirements.txt
+# System requirement (not installed by pip): Poppler's `pdftotext` executable.
+# API credentials (environment variables, not packages):
+#   FRED_API_KEY   required by control_variables/control_generator.py
+#   BLS_API_KEY    required by center_ols/nd_center_ols.py for fresh BLS requests
+#   CENSUS_API_KEY recommended for Census ACS requests (API may work without it)
+# Place keys in an ignored nd_policy_brief/.env file or export them in your shell.
+
+numpy>=1.26,<3
+pandas>=2.1,<3
+requests>=2.31,<3
+openpyxl>=3.1,<4
+matplotlib>=3.8,<4
+scipy>=1.11,<2
+statsmodels>=0.14,<1
+python-dotenv>=1.0,<2

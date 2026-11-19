@@ -1,0 +1,31 @@
+Term,Original
+Log staff-child ratio,-0.242***
+,(0.085)
+No maximum group size,-0.109
+,(0.101)
+Maximum group size ratio,-0.040
+,(0.047)
+Teacher education requirement,0.040***
+,(0.011)
+Director education requirement,-0.002
+,(0.009)
+Log household income,0.763***
+,(0.118)
+Log minimum wage,0.142**
+,(0.067)
+Female labor force participation rate,0.796*
+,(0.443)
+Share of population under age 5,-9.086***
+,(2.232)
+Log population,0.023
+,(0.014)
+Constant,0.747
+,(1.221)
+Year: 2018,-0.019
+,(0.026)
+Year: 2023,-0.060*
+,(0.033)
+Observations,151
+States (clusters),51
+R-squared,0.778
+Adjusted R-squared,0.758

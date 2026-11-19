@@ -1,0 +1,1007 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html lang="en-us" xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta http-equiv="Pragma" content="no-cache, no-store" />
+        <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE9" />
+
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta http-equiv="Pragma" content="no-cache" />
+        <meta http-equiv="Expires" content="0" />
+
+        <title>rules.sd.gov | detail</title>
+
+        <link href="/inc/styles/screen.css" rel="stylesheet" type="text/css" />
+        <link rel="icon" type="image/png" href="/img/favicon.png" />
+
+        <script type="text/javascript">
+            if (top.frames.length != 0)
+                top.location = self.document.location;
+        </script>
+
+        <script src="/inc/SpryAssets/SpryMenuBar.js" type="text/javascript"></script>
+
+    </head>
+     <meta name="viewport" content="width=device-width, user-scalable=yes">
+
+   <!--[if IE 7]><link rel="stylesheet" type="text/css" href="/inc/styles/ie7.css"><![endif]-->
+
+   <!--[if gte IE 8]><link rel="stylesheet" type="text/css" href="/inc/styles/ie8.css"><![endif]-->
+
+   
+   
+<SCRIPT LANGUAGE = javascript>
+if (top.frames.length!=0)
+top.location=self.document.location;
+</SCRIPT>
+
+
+<script>
+(function() { // BeginSpryComponent
+
+if (typeof Spry == "undefined") window.Spry = {}; if (!Spry.Widget) Spry.Widget = {};
+
+Spry.BrowserSniff = function()
+{
+	var b = navigator.appName.toString();
+	var up = navigator.platform.toString();
+	var ua = navigator.userAgent.toString();
+
+	this.mozilla = this.ie = this.opera = this.safari = false;
+	var re_opera = /Opera.([0-9\.]*)/i;
+	var re_msie = /MSIE.([0-9\.]*)/i;
+	var re_gecko = /gecko/i;
+	var re_safari = /(applewebkit|safari)\/([\d\.]*)/i;
+	var r = false;
+
+	if ( (r = ua.match(re_opera))) {
+		this.opera = true;
+		this.version = parseFloat(r[1]);
+	} else if ( (r = ua.match(re_msie))) {
+		this.ie = true;
+		this.version = parseFloat(r[1]);
+	} else if ( (r = ua.match(re_safari))) {
+		this.safari = true;
+		this.version = parseFloat(r[2]);
+	} else if (ua.match(re_gecko)) {
+		var re_gecko_version = /rv:\s*([0-9\.]+)/i;
+		r = ua.match(re_gecko_version);
+		this.mozilla = true;
+		this.version = parseFloat(r[1]);
+	}
+	this.windows = this.mac = this.linux = false;
+
+	this.Platform = ua.match(/windows/i) ? "windows" :
+					(ua.match(/linux/i) ? "linux" :
+					(ua.match(/mac/i) ? "mac" :
+					ua.match(/unix/i)? "unix" : "unknown"));
+	this[this.Platform] = true;
+	this.v = this.version;
+
+	if (this.safari && this.mac && this.mozilla) {
+		this.mozilla = false;
+	}
+};
+
+Spry.is = new Spry.BrowserSniff();
+
+// Constructor for Menu Bar
+// element should be an ID of an unordered list (<ul> tag)
+// preloadImage1 and preloadImage2 are images for the rollover state of a menu
+Spry.Widget.MenuBar = function(element, opts)
+{
+	this.init(element, opts);
+};
+
+Spry.Widget.MenuBar.prototype.init = function(element, opts)
+{
+	this.element = this.getElement(element);
+
+	// represents the current (sub)menu we are operating on
+	this.currMenu = null;
+	this.showDelay = 250;
+	this.hideDelay = 600;
+	if(typeof document.getElementById == 'undefined' || (navigator.vendor == 'Apple Computer, Inc.' && typeof window.XMLHttpRequest == 'undefined') || (Spry.is.ie && typeof document.uniqueID == 'undefined'))
+	{
+		// bail on older unsupported browsers
+		return;
+	}
+
+	// Fix IE6 CSS images flicker
+	if (Spry.is.ie && Spry.is.version < 7){
+		try {
+			document.execCommand("BackgroundImageCache", false, true);
+		} catch(err) {}
+	}
+
+	this.upKeyCode = Spry.Widget.MenuBar.KEY_UP;
+	this.downKeyCode = Spry.Widget.MenuBar.KEY_DOWN;
+	this.leftKeyCode = Spry.Widget.MenuBar.KEY_LEFT;
+	this.rightKeyCode = Spry.Widget.MenuBar.KEY_RIGHT;
+	this.escKeyCode = Spry.Widget.MenuBar.KEY_ESC;
+
+	this.hoverClass = 'MenuBarItemHover';
+	this.subHoverClass = 'MenuBarItemSubmenuHover';
+	this.subVisibleClass ='MenuBarSubmenuVisible';
+	this.hasSubClass = 'MenuBarItemSubmenu';
+	this.activeClass = 'MenuBarActive';
+	this.isieClass = 'MenuBarItemIE';
+	this.verticalClass = 'MenuBarVertical';
+	this.horizontalClass = 'MenuBarHorizontal';
+	this.enableKeyboardNavigation = true;
+
+	this.hasFocus = false;
+	// load hover images now
+	if(opts)
+	{
+		for(var k in opts)
+		{
+			if (typeof this[k] == 'undefined')
+			{
+				var rollover = new Image;
+				rollover.src = opts[k];
+			}
+		}
+		Spry.Widget.MenuBar.setOptions(this, opts);
+	}
+
+	// safari doesn't support tabindex
+	if (Spry.is.safari)
+		this.enableKeyboardNavigation = false;
+
+	if(this.element)
+	{
+		this.currMenu = this.element;
+		var items = this.element.getElementsByTagName('li');
+		for(var i=0; i<items.length; i++)
+		{
+			if (i > 0 && this.enableKeyboardNavigation)
+				items[i].getElementsByTagName('a')[0].tabIndex='-1';
+
+			this.initialize(items[i], element);
+			if(Spry.is.ie)
+			{
+				this.addClassName(items[i], this.isieClass);
+				items[i].style.position = "static";
+			}
+		}
+		if (this.enableKeyboardNavigation)
+		{
+			var self = this;
+			this.addEventListener(document, 'keydown', function(e){self.keyDown(e); }, false);
+		}
+
+		if(Spry.is.ie)
+		{
+			if(this.hasClassName(this.element, this.verticalClass))
+			{
+				this.element.style.position = "relative";
+			}
+			var linkitems = this.element.getElementsByTagName('a');
+			for(var i=0; i<linkitems.length; i++)
+			{
+				linkitems[i].style.position = "relative";
+			}
+		}
+	}
+};
+Spry.Widget.MenuBar.KEY_ESC = 27;
+Spry.Widget.MenuBar.KEY_UP = 38;
+Spry.Widget.MenuBar.KEY_DOWN = 40;
+Spry.Widget.MenuBar.KEY_LEFT = 37;
+Spry.Widget.MenuBar.KEY_RIGHT = 39;
+
+Spry.Widget.MenuBar.prototype.getElement = function(ele)
+{
+	if (ele && typeof ele == "string")
+		return document.getElementById(ele);
+	return ele;
+};
+
+Spry.Widget.MenuBar.prototype.hasClassName = function(ele, className)
+{
+	if (!ele || !className || !ele.className || ele.className.search(new RegExp("\\b" + className + "\\b")) == -1)
+	{
+		return false;
+	}
+	return true;
+};
+
+Spry.Widget.MenuBar.prototype.addClassName = function(ele, className)
+{
+	if (!ele || !className || this.hasClassName(ele, className))
+		return;
+	ele.className += (ele.className ? " " : "") + className;
+};
+
+Spry.Widget.MenuBar.prototype.removeClassName = function(ele, className)
+{
+	if (!ele || !className || !this.hasClassName(ele, className))
+		return;
+	ele.className = ele.className.replace(new RegExp("\\s*\\b" + className + "\\b", "g"), "");
+};
+
+// addEventListener for Menu Bar
+// attach an event to a tag without creating obtrusive HTML code
+Spry.Widget.MenuBar.prototype.addEventListener = function(element, eventType, handler, capture)
+{
+	try
+	{
+		if (element.addEventListener)
+		{
+			element.addEventListener(eventType, handler, capture);
+		}
+		else if (element.attachEvent)
+		{
+			element.attachEvent('on' + eventType, handler);
+		}
+	}
+	catch (e) {}
+};
+
+// createIframeLayer for Menu Bar
+// creates an IFRAME underneath a menu so that it will show above form controls and ActiveX
+Spry.Widget.MenuBar.prototype.createIframeLayer = function(menu)
+{
+	var layer = document.createElement('iframe');
+	layer.tabIndex = '-1';
+	layer.src = 'javascript:""';
+	layer.frameBorder = '0';
+	layer.scrolling = 'no';
+	menu.parentNode.appendChild(layer);
+	
+	layer.style.left = menu.offsetLeft + 'px';
+	layer.style.top = menu.offsetTop + 'px';
+	layer.style.width = menu.offsetWidth + 'px';
+	layer.style.height = menu.offsetHeight + 'px';
+};
+
+// removeIframeLayer for Menu Bar
+// removes an IFRAME underneath a menu to reveal any form controls and ActiveX
+Spry.Widget.MenuBar.prototype.removeIframeLayer =  function(menu)
+{
+	var layers = ((menu == this.element) ? menu : menu.parentNode).getElementsByTagName('iframe');
+	while(layers.length > 0)
+	{
+		layers[0].parentNode.removeChild(layers[0]);
+	}
+};
+
+// clearMenus for Menu Bar
+// root is the top level unordered list (<ul> tag)
+Spry.Widget.MenuBar.prototype.clearMenus = function(root)
+{
+	var menus = root.getElementsByTagName('ul');
+	for(var i=0; i<menus.length; i++)
+		this.hideSubmenu(menus[i]);
+
+	this.removeClassName(this.element, this.activeClass);
+};
+
+// bubbledTextEvent for Menu Bar
+// identify bubbled up text events in Safari so we can ignore them
+Spry.Widget.MenuBar.prototype.bubbledTextEvent = function()
+{
+	return Spry.is.safari && (event.target == event.relatedTarget.parentNode || (event.eventPhase == 3 && event.target.parentNode == event.relatedTarget));
+};
+
+// showSubmenu for Menu Bar
+// set the proper CSS class on this menu to show it
+Spry.Widget.MenuBar.prototype.showSubmenu = function(menu)
+{
+	if(this.currMenu)
+	{
+		this.clearMenus(this.currMenu);
+		this.currMenu = null;
+	}
+	
+	if(menu)
+	{
+		this.addClassName(menu, this.subVisibleClass);
+		if(typeof document.all != 'undefined' && !Spry.is.opera && navigator.vendor != 'KDE')
+		{
+			if(!this.hasClassName(this.element, this.horizontalClass) || menu.parentNode.parentNode != this.element)
+			{
+				menu.style.top = menu.parentNode.offsetTop + 'px';
+			}
+		}
+		if(Spry.is.ie && Spry.is.version < 7)
+		{
+			this.createIframeLayer(menu);
+		}
+	}
+	this.addClassName(this.element, this.activeClass);
+};
+
+// hideSubmenu for Menu Bar
+// remove the proper CSS class on this menu to hide it
+Spry.Widget.MenuBar.prototype.hideSubmenu = function(menu)
+{
+	if(menu)
+	{
+		this.removeClassName(menu, this.subVisibleClass);
+		if(typeof document.all != 'undefined' && !Spry.is.opera && navigator.vendor != 'KDE')
+		{
+			menu.style.top = '';
+			menu.style.left = '';
+		}
+		if(Spry.is.ie && Spry.is.version < 7)
+			this.removeIframeLayer(menu);
+	}
+};
+
+// initialize for Menu Bar
+// create event listeners for the Menu Bar widget so we can properly
+// show and hide submenus
+Spry.Widget.MenuBar.prototype.initialize = function(listitem, element)
+{
+	var opentime, closetime;
+	var link = listitem.getElementsByTagName('a')[0];
+	var submenus = listitem.getElementsByTagName('ul');
+	var menu = (submenus.length > 0 ? submenus[0] : null);
+
+	if(menu)
+		this.addClassName(link, this.hasSubClass);
+
+	if(!Spry.is.ie)
+	{
+		// define a simple function that comes standard in IE to determine
+		// if a node is within another node
+		listitem.contains = function(testNode)
+		{
+			// this refers to the list item
+			if(testNode == null)
+				return false;
+
+			if(testNode == this)
+				return true;
+			else
+				return this.contains(testNode.parentNode);
+		};
+	}
+
+	// need to save this for scope further down
+	var self = this;
+	this.addEventListener(listitem, 'mouseover', function(e){self.mouseOver(listitem, e);}, false);
+	this.addEventListener(listitem, 'mouseout', function(e){if (self.enableKeyboardNavigation) self.clearSelection(); self.mouseOut(listitem, e);}, false);
+
+	if (this.enableKeyboardNavigation)
+	{
+		this.addEventListener(link, 'blur', function(e){self.onBlur(listitem);}, false);
+		this.addEventListener(link, 'focus', function(e){self.keyFocus(listitem, e);}, false);
+	}
+};
+Spry.Widget.MenuBar.prototype.keyFocus = function (listitem, e)
+{
+	this.lastOpen = listitem.getElementsByTagName('a')[0];
+	this.addClassName(this.lastOpen, listitem.getElementsByTagName('ul').length > 0 ? this.subHoverClass : this.hoverClass);
+	this.hasFocus = true;
+};
+Spry.Widget.MenuBar.prototype.onBlur = function (listitem)
+{
+	this.clearSelection(listitem);
+};
+Spry.Widget.MenuBar.prototype.clearSelection = function(el){
+	//search any intersection with the current open element
+	if (!this.lastOpen)
+		return;
+
+	if (el)
+	{
+		el = el.getElementsByTagName('a')[0];
+		
+		// check children
+		var item = this.lastOpen;
+		while (item != this.element)
+		{
+			var tmp = el;
+			while (tmp != this.element)
+			{
+				if (tmp == item)
+					return;
+				try{
+					tmp = tmp.parentNode;
+				}catch(err){break;}
+			}
+			item = item.parentNode;
+		}
+	}
+	var item = this.lastOpen;
+	while (item != this.element)
+	{
+		this.hideSubmenu(item.parentNode);
+		var link = item.getElementsByTagName('a')[0];
+		this.removeClassName(link, this.hoverClass);
+		this.removeClassName(link, this.subHoverClass);
+		item = item.parentNode;
+	}
+	this.lastOpen = false;
+};
+Spry.Widget.MenuBar.prototype.keyDown = function (e)
+{
+	if (!this.hasFocus)
+		return;
+
+	if (!this.lastOpen)
+	{
+		this.hasFocus = false;
+		return;
+	}
+
+	var e = e|| event;
+	var listitem = this.lastOpen.parentNode;
+	var link = this.lastOpen;
+	var submenus = listitem.getElementsByTagName('ul');
+	var menu = (submenus.length > 0 ? submenus[0] : null);
+	var hasSubMenu = (menu) ? true : false;
+
+	var opts = [listitem, menu, null, this.getSibling(listitem, 'previousSibling'), this.getSibling(listitem, 'nextSibling')];
+	
+	if (!opts[3])
+		opts[2] = (listitem.parentNode.parentNode.nodeName.toLowerCase() == 'li')?listitem.parentNode.parentNode:null;
+
+	var found = 0;
+	switch (e.keyCode){
+		case this.upKeyCode:
+			found = this.getElementForKey(opts, 'y', 1);
+			break;
+		case this.downKeyCode:
+			found = this.getElementForKey(opts, 'y', -1);
+			break;
+		case this.leftKeyCode:
+			found = this.getElementForKey(opts, 'x', 1);
+			break;
+		case this.rightKeyCode:
+			found = this.getElementForKey(opts, 'x', -1);
+			break;
+		case this.escKeyCode:
+		case 9:
+			this.clearSelection();
+			this.hasFocus = false;
+		default: return;
+	}
+	switch (found)
+	{
+		case 0: return;
+		case 1:
+			//subopts
+			this.mouseOver(listitem, e);
+			break;
+		case 2:
+			//parent
+			this.mouseOut(opts[2], e);
+			break;
+		case 3:
+		case 4:
+			// left - right
+			this.removeClassName(link, hasSubMenu ? this.subHoverClass : this.hoverClass);
+			break;
+	}
+	var link = opts[found].getElementsByTagName('a')[0];
+	if (opts[found].nodeName.toLowerCase() == 'ul')
+		opts[found] = opts[found].getElementsByTagName('li')[0];
+
+	this.addClassName(link, opts[found].getElementsByTagName('ul').length > 0 ? this.subHoverClass : this.hoverClass);
+	this.lastOpen = link;
+	opts[found].getElementsByTagName('a')[0].focus();
+  
+        //stop further event handling by the browser
+	return Spry.Widget.MenuBar.stopPropagation(e);
+};
+Spry.Widget.MenuBar.prototype.mouseOver = function (listitem, e)
+{
+	var link = listitem.getElementsByTagName('a')[0];
+	var submenus = listitem.getElementsByTagName('ul');
+	var menu = (submenus.length > 0 ? submenus[0] : null);
+	var hasSubMenu = (menu) ? true : false;
+	if (this.enableKeyboardNavigation)
+		this.clearSelection(listitem);
+
+	if(this.bubbledTextEvent())
+	{
+		// ignore bubbled text events
+		return;
+	}
+
+	if (listitem.closetime)
+		clearTimeout(listitem.closetime);
+
+	if(this.currMenu == listitem)
+	{
+		this.currMenu = null;
+	}
+
+	// move the focus too
+	if (this.hasFocus)
+		link.focus();
+
+	// show menu highlighting
+	this.addClassName(link, hasSubMenu ? this.subHoverClass : this.hoverClass);
+	this.lastOpen = link;
+	if(menu && !this.hasClassName(menu, this.subHoverClass))
+	{
+		var self = this;
+		listitem.opentime = window.setTimeout(function(){self.showSubmenu(menu);}, this.showDelay);
+	}
+};
+Spry.Widget.MenuBar.prototype.mouseOut = function (listitem, e)
+{
+	var link = listitem.getElementsByTagName('a')[0];
+	var submenus = listitem.getElementsByTagName('ul');
+	var menu = (submenus.length > 0 ? submenus[0] : null);
+	var hasSubMenu = (menu) ? true : false;
+	if(this.bubbledTextEvent())
+	{
+		// ignore bubbled text events
+		return;
+	}
+
+	var related = (typeof e.relatedTarget != 'undefined' ? e.relatedTarget : e.toElement);
+	if(!listitem.contains(related))
+	{
+		if (listitem.opentime) 
+			clearTimeout(listitem.opentime);
+		this.currMenu = listitem;
+
+		// remove menu highlighting
+		this.removeClassName(link, hasSubMenu ? this.subHoverClass : this.hoverClass);
+		if(menu)
+		{
+			var self = this;
+			listitem.closetime = window.setTimeout(function(){self.hideSubmenu(menu);}, this.hideDelay);
+		}
+		if (this.hasFocus)
+			link.blur();
+	}
+};
+Spry.Widget.MenuBar.prototype.getSibling = function(element, sibling)
+{
+	var child = element[sibling];
+	while (child && child.nodeName.toLowerCase() !='li')
+		child = child[sibling];
+
+	return child;
+};
+Spry.Widget.MenuBar.prototype.getElementForKey = function(els, prop, dir)
+{
+	var found = 0;
+	var rect = Spry.Widget.MenuBar.getPosition;
+	var ref = rect(els[found]);
+
+	var hideSubmenu = false;
+	//make the subelement visible to compute the position
+	if (els[1] && !this.hasClassName(els[1], this.MenuBarSubmenuVisible))
+	{
+		els[1].style.visibility = 'hidden';
+		this.showSubmenu(els[1]);
+		hideSubmenu = true;
+	}
+
+	var isVert = this.hasClassName(this.element, this.verticalClass);
+	var hasParent = els[0].parentNode.parentNode.nodeName.toLowerCase() == 'li' ? true : false;
+	
+	for (var i = 1; i < els.length; i++){
+		//when navigating on the y axis in vertical menus, ignore children and parents
+		if(prop=='y' && isVert && (i==1 || i==2))
+		{
+			continue;
+		}
+		//when navigationg on the x axis in the FIRST LEVEL of horizontal menus, ignore children and parents
+		if(prop=='x' && !isVert && !hasParent && (i==1 || i==2))
+		{
+			continue;
+		}
+			
+		if (els[i])
+		{
+			var tmp = rect(els[i]); 
+			if ( (dir * tmp[prop]) < (dir * ref[prop]))
+			{
+				ref = tmp;
+				found = i;
+			}
+		}
+	}
+	
+	// hide back the submenu
+	if (els[1] && hideSubmenu){
+		this.hideSubmenu(els[1]);
+		els[1].style.visibility =  '';
+	}
+
+	return found;
+};
+Spry.Widget.MenuBar.camelize = function(str)
+{
+	if (str.indexOf('-') == -1){
+		return str;	
+	}
+	var oStringList = str.split('-');
+	var isFirstEntry = true;
+	var camelizedString = '';
+
+	for(var i=0; i < oStringList.length; i++)
+	{
+		if(oStringList[i].length>0)
+		{
+			if(isFirstEntry)
+			{
+				camelizedString = oStringList[i];
+				isFirstEntry = false;
+			}
+			else
+			{
+				var s = oStringList[i];
+				camelizedString += s.charAt(0).toUpperCase() + s.substring(1);
+			}
+		}
+	}
+
+	return camelizedString;
+};
+
+Spry.Widget.MenuBar.getStyleProp = function(element, prop)
+{
+	var value;
+	try
+	{
+		if (element.style)
+			value = element.style[Spry.Widget.MenuBar.camelize(prop)];
+
+		if (!value)
+			if (document.defaultView && document.defaultView.getComputedStyle)
+			{
+				var css = document.defaultView.getComputedStyle(element, null);
+				value = css ? css.getPropertyValue(prop) : null;
+			}
+			else if (element.currentStyle) 
+			{
+					value = element.currentStyle[Spry.Widget.MenuBar.camelize(prop)];
+			}
+	}
+	catch (e) {}
+
+	return value == 'auto' ? null : value;
+};
+Spry.Widget.MenuBar.getIntProp = function(element, prop)
+{
+	var a = parseInt(Spry.Widget.MenuBar.getStyleProp(element, prop),10);
+	if (isNaN(a))
+		return 0;
+	return a;
+};
+
+Spry.Widget.MenuBar.getPosition = function(el, doc)
+{
+	doc = doc || document;
+	if (typeof(el) == 'string') {
+		el = doc.getElementById(el);
+	}
+
+	if (!el) {
+		return false;
+	}
+
+	if (el.parentNode === null || Spry.Widget.MenuBar.getStyleProp(el, 'display') == 'none') {
+		//element must be visible to have a box
+		return false;
+	}
+
+	var ret = {x:0, y:0};
+	var parent = null;
+	var box;
+
+	if (el.getBoundingClientRect) { // IE
+		box = el.getBoundingClientRect();
+		var scrollTop = doc.documentElement.scrollTop || doc.body.scrollTop;
+		var scrollLeft = doc.documentElement.scrollLeft || doc.body.scrollLeft;
+		ret.x = box.left + scrollLeft;
+		ret.y = box.top + scrollTop;
+	} else if (doc.getBoxObjectFor) { // gecko
+		box = doc.getBoxObjectFor(el);
+		ret.x = box.x;
+		ret.y = box.y;
+	} else { // safari/opera
+		ret.x = el.offsetLeft;
+		ret.y = el.offsetTop;
+		parent = el.offsetParent;
+		if (parent != el) {
+			while (parent) {
+				ret.x += parent.offsetLeft;
+				ret.y += parent.offsetTop;
+				parent = parent.offsetParent;
+			}
+		}
+		// opera & (safari absolute) incorrectly account for body offsetTop
+		if (Spry.is.opera || Spry.is.safari && Spry.Widget.MenuBar.getStyleProp(el, 'position') == 'absolute')
+			ret.y -= doc.body.offsetTop;
+	}
+	if (el.parentNode)
+			parent = el.parentNode;
+	else
+		parent = null;
+	if (parent.nodeName){
+		var cas = parent.nodeName.toUpperCase();
+		while (parent && cas != 'BODY' && cas != 'HTML') {
+			cas = parent.nodeName.toUpperCase();
+			ret.x -= parent.scrollLeft;
+			ret.y -= parent.scrollTop;
+			if (parent.parentNode)
+				parent = parent.parentNode;
+			else
+				parent = null;
+		}
+	}
+	return ret;
+};
+
+Spry.Widget.MenuBar.stopPropagation = function(ev)
+{
+	if (ev.stopPropagation)
+		ev.stopPropagation();
+	else
+		ev.cancelBubble = true;
+	if (ev.preventDefault) 
+		ev.preventDefault();
+	else 
+		ev.returnValue = false;
+};
+
+Spry.Widget.MenuBar.setOptions = function(obj, optionsObj, ignoreUndefinedProps)
+{
+	if (!optionsObj)
+		return;
+	for (var optionName in optionsObj)
+	{
+		if (ignoreUndefinedProps && optionsObj[optionName] == undefined)
+			continue;
+		obj[optionName] = optionsObj[optionName];
+	}
+};
+
+})(); // EndSpryComponent
+
+</script>
+   
+
+    <body>
+        <form method="post" action="./detail?Id=749" id="form" target="_blank">
+<div class="aspNetHidden">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="MWV9KwvjmHM5fpyxGtAdoysmaZRHEzB/Q9g0S6/TYvpOkLzdECwMDxDm5hm9Hh0KKUz16jpGbnGr7+j4K02J6simKE9Xhv0nsLaABNxgSlN3P5T4s0cXhqKPb4uKcO9KstKLnUl8ah4XyNrTiyD0JXmF1cyJqit4SnJKipydrVnnZLuvVGPuLDJmq/39Evp7ejMG26lmIS1BOfLj10YRuiv/lZa6avFRUYDxraAoGKv5fcsvEFf9GPqCRboAKGTwnzJUHPkr6mdV4kp5+Tks70xC36hsDVtF1GCuMqfGVL8lSVs8/z3t6lEahQeMQT+9B9Kz57fsA25sS3kg6Hh0OozWpFJKBShEaJAM4Mz1CmXS+db6v3rAih4k+pNKKS3LwIz6OxhbwlMbBvvqMNy+Oak9O09myDrnhbn8n3SUhlnd9klZG+Scnh8vGPZlPtMXfXTPT/RWT5wjr4bHHGUxKqf8/1Kgf1oXxrsqr7v0SMfLZRzyf05K8bzGzFnGDxn1fW3tpZKYcKEGz1eZpRTTzbOqGe81s4ICI8Es4xQZywqqMNZ3zJkbR0tiVG1dRyOVbyBXuBAt+/+dHWbNbBSMi2CSnVmWmTNVMxR3KJFEjSudw7N3AfslbFM6lDStCHh0uWPXzm254lUFbqL/sA7/ytmnkPuT7QpFmf32c226grCyFr6T87nN3mnFI71HJoIy5f1z++jQvGm1KiCk1Wt+YkTJ48Bo3p0IjudOZ2cMzZwYXeXKsIbuo4yCweqp37qxanY18NBcTqn8G4gJvk2gz2mfz221krZJyHg61sVMMTsPt6RvpAUJwX6ppH5Ahq9iZVpmYgAN/Jo3A4dmWCoTEs0V139L19tgIxIF3KAgjlW0hR24N2V/NDUYw5fJMowlxSUHOVJg4hG6g3AlqQZaIdxLz+6uAqigFOhIoA+S4Wi5wa47HkJ0wXygi9MOFhJvKm0qioercb3pkmqsLtJYcQn7g/Q6nwEk8tCms6GyDWv5U7I/vCXoCkFAf2q9UH0zknzjVhAVFl1ucPgEHpSH6bu5+N7qRC8iTEh/TnczUVAI+Z0dQOlQ3gF2QWzNTwynU3aCsJMihPNIECfIP9FaE+xbqD4diDQJrAivzDy8NJnAFSVzB9RIdyUYHVfl8nfOode//Q0DNAJWAilM7lgdXI06Jdv1N+TSw72Hc0NR0rP4NF5GMbKnN38JGXigr6S9Pe0tylV9uLr2r/BAa8Cn5rx7XYJIvCDsHcowSMm4tfo14r8HN9Lf5gR3MAnMkki/nh3kDKEvbl8Qa6mmBHYh0l41rgS2hI9h3aFf83A6krg=" />
+</div>
+
+<div class="aspNetHidden">
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="05E0F5E4" />
+	<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="LZ3S1y5w2SMlCGj50JOlSTMq++RhMp/m+uWCILQgjd65Vx+HIJW/H/lz0nNwY7dGRk+PT8+BmUgRjI82KtBhzEx/c1fl5s8HShL6nX+gwRmqULpoZ+Dg0RiJr2zDQ570sJ8/0fC7uZn/dL01nBJjvGSZ+Vm43Xf37UFUhLdSgqxqqL8HUhqMsC6j9XWt7E9d49kkL5YYANQrXfsiBTZxuJIrNjKysNctTFMb2j62rJ3SyXr2dt0C2cnH8sUATZKeTfZlDMpNdVa3IUPGUaAsOhY6jWktIVUWh/XyQ4yTYUVnpCj4JcymIdcMtzJJzh6tP7ggms0FeavzxQLWiOiYeyQbblkqg4k1OgskONWWbL05EcQkHw5GjznxbRXUCznv/bNpokM4Ia0dC52tiB16I4u+n4FBSqbMcTgJtClaRrI=" />
+</div>
+            <div id="content">
+                	<div id="header">
+		
+		<img id="logo" src="../img/logo.png" alt="SD Administrative Rules logo" />
+        <a id="title" href="/default.aspx">RULES.SD.GOV</a>
+        
+    </div>    <div class="topmenu"> 
+      <div class="menuitems" id="firstmenuitem"><a href="/default.aspx">Home</a></div> 
+        <div class="menuitems">|</div>
+	  <div class="menuitems"><a href="/archive.aspx">Archive</a></div>
+        <div class="menuitems">|</div>  
+	  <div class="menuitems"><a href="https://sdlegislature.gov/Rules/Administrative" target="_blank">Administrative Rules List (LRC)</a></div>
+        <div class="menuitems">|</div>  
+	  <div class="menuitems"><a href="https://sdlegislature.gov/Interim/Committee/503/Detail" target="_blank">Interim Rules Review</a></div>
+
+	</div> 
+
+                <div id="maincontent">
+   	                <div id="leftcolumn">
+   	  <div class="bluebox">
+          <ul id="MenuBar1" class="MenuBarVertical">
+              <li><a href="https://sdlegislature.gov/Rules/RulesManual" target="_blank" class="MenuBarHead">Rules Manual</a></li>
+              	<li><hr /></li>
+             	 <li><a href="https://mylrc.sdlegislature.gov/api/Documents/220472.pdf " target="_blank" class="MenuBarHead">State Register</a></li>
+              	<li><hr /></li>
+              <li><a class="MenuBarHead" href="">State Agencies &rarr;</a>
+              	<hr />
+
+                  
+
+                  <ul>
+                      <li>
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=ATG  Attorney General">Attorney General</a><br />
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=BHRA  Bureau of Human Resporces and Administration">Bureau of Human Resporces and Administration</a><br />
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=BFM  Bureau of Finance and Management">Bureau of Finance and Management</a><br />
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=BIT  Bureau of Information and Technology">Bureau of Information and Technology</a><br />
+                          
+                          
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=DANR Department of Agriculture and Natural Resources">Department of Agriculture and Natural Resources</a><br />
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=DOA  Department of Corrections">Department of Corrections</a><br />
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=DOE  Department of Education">Department of Education</a><br />
+                          
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=GFP  Game, Fish And Parks">Department of Game Fish and Parks</a><br />
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=GOED Governor's Office of Economic Development">Governor's Office of Economic Development</a><br />
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=DOH  Department of Health">Department of Health</a><br />
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=DHS  Department of Human Services">Department of Human Services</a><br />
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=DLR  Department of Labor and Regulation">Department of Labor and Regulation</a><br />
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=DOM  Department of the Military">Department of Military</a><br />
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=DPS  Department of Public Safety">Department of Public Safety</a><br />
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=DOR  Department of Revenue">Department of Revenue</a><br />
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=DSS  Department of Social Services">Department of Social Services</a><br />
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=DOT  Department of Transportation">Department of Transportation</a><br />
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=TOUR Department of Tourism">Department of Tourism</a><br />
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=DTR  Department of Tribal Relations">Department of Tribal Relations</a><br />
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=DVA  Department of Veterans Affairs">Department of Veterans Affairs </a>
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=PUC  Public Utilities Commission">Public Utilities Commission</a>
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=SPL  School and Public Lands">School and Public Lands</a>
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=SOS  Secretary of State">Secretary of State</a>
+
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=HDA  South Dakota Housing Development Authority">SD Housing Development Authority</a>
+
+                          <a class="MenuBarItemSubmenu" href="agency.aspx?agency=TRE  State Treasurer">State Treasurer</a>
+                      </li>
+                  </ul>
+
+          
+      
+
+       
+
+
+      </li>
+      <li><a class="MenuBarHead" href="Notification.aspx">Email Notifications</a></li>
+      </ul>
+
+
+
+      </div> 
+        
+      <div class="bluebox">
+          <ul id="MenuBar1" class="MenuBarVertical">
+              <li><a class="MenuBarItemSubmenu" href="https://www.sd.gov/cs" >State Homepage</a></li>
+              	<li><hr /></li>
+              <li><a href="https://sdlegislature.gov/"  class="MenuBarItemSubmenu">Legislative Research Council</a></li>
+           </ul>
+                
+                
+      </div>  
+        
+        
+        
+      <div id="note">
+          as required by <br />
+          <a href="http://sdlegislature.gov/Statutes/Codified_Laws/DisplayStatute.aspx?Type=Statute&Statute=1-26-1" target="_blank">SDCL 1-26-1</a> and <br />
+          <a href="http://sdlegislature.gov/Statutes/Codified_Laws/DisplayStatute.aspx?Type=Statute&Statute=1-26-5" target="_blank">SDCL 1-26-5</a> as of <br />
+          11-13-2026 15:35:03 PM
+      </div>
+
+    </div>
+ 	                <div id="midcolumn" >
+    	                <div id="agencyinfo"> 
+    	                    <h1><span id="lblAgencyTitle" style="display:inline-block;width:750px;">Department of Social Services </span> </h1>  
+                            <br/>
+                            <br/>
+                            <h2><span id="lblRuleTitle">Child Care Services</span></h2>
+                            <br/>
+		                    <span id="lblRuleDesc">This a comprehensive rewrite of the child care rules.  The rules are more closely aligned with the federal child care requirements.  Barriers to licensure for child care providers were removed.  Administrative burdens to providers was reduced.  Language overall was streamlined and clarified.   Child care ratios were edited for five-year-old children for a licensed program, the number of infants a family day care provider can care for is increased by one.  Form and style edits were incorporated throughout.</span>	
+                            <center>
+                                <p>
+                                    <strong><em>New content is added below as the draft rules move through the rule-making process</em>.</strong>
+                                </p>
+                            </center>
+		                    <center>
+                                <input type="submit" name="btnEmail" value="Sign up for email notification" id="btnEmail" style="height:30px;width:250px;" />
+		                    </center>
+		                    <br/><br/>
+          
+    	                    <div class="detailcolumn">
+                                <input type="submit" name="btnFileRv1" value="Notice of Public Hearing (Form 6)" id="btnFileRv1" style="width:275px;" /><br/>
+                                <input type="submit" name="btnFileRv2" value="Proposed Rule" id="btnFileRv2" style="width:275px;" /><br/>
+                                <input type="submit" name="btnFileRv9" value="Fiscal Note (Form 5)" id="btnFileRv9" style="width:275px;" /> 
+                                
+                                <input type="submit" name="btnFileRv16" value="Agency Financial Resource Info (Form 17)" id="btnFileRv16" disabled="disabled" class="aspNetDisabled" style="width:275px;" /> 
+                                <input type="submit" name="btnFileRv15" value="Regulatory Impact Analysis" id="btnFileRv15" disabled="disabled" class="aspNetDisabled" style="width:275px;" /> 
+                                <input type="submit" name="btnFileRv11" value="Small Business Impact Statement" id="btnFileRv11" style="width:275px;" />
+                                <input type="submit" name="btnFileRv12" value="Housing Cost Impact Statement (Form 16)" id="btnFileRv12" disabled="disabled" class="aspNetDisabled" style="width:275px;" />
+                                <input type="submit" name="btnFileRv10" value="Code Counsel Advisement" id="btnFileRv10" style="width:275px;" /> 
+                                <input type="submit" name="btnFileRv14" value="Public Comments" id="btnFileRv14" disabled="disabled" class="aspNetDisabled" style="width:275px;" /> 
+                                <input type="submit" name="btnFileRv6" value="Agency Rules Hearing Minutes" id="btnFileRv6" style="width:275px;" />
+                                <input type="submit" name="btnFileRv3" value="Latest Version of Rule (w/amendments)" id="btnFileRv3" style="width:275px;" /><br/>
+                                <input type="submit" name="btnFileRv13" value="Approval of Rules (Form 11)" id="btnFileRv13" style="width:275px;" />
+                                <input type="submit" name="btnFileRv4" value="Adopted Rules" id="btnFileRv4" style="width:275px;" /><br />
+
+                                <input type="submit" name="btnFileRv17" value="Certificate (Form 13)" id="btnFileRv17" disabled="disabled" class="aspNetDisabled" style="width:275px;" /> 
+              
+                                
+				  
+                                
+			   
+			  	  
+                                <div id="detailbox">
+                                    <div class="detailcolumn1">
+					                        <strong><u>Important Dates</u></strong>
+                                            <br/>
+                                            Public Hearing:
+                                            <br/>
+                                            Comment Deadline:
+                                            <br/>
+                                            Interim Rules Committee Hearing:
+                                            <br/>
+                                            Filed-Secretary of State:
+                                            <br/>
+                                            Rule Effective:
+                                    </div>
+                                    <div class="detailcolumn2">
+                	                    <span id="lblDatePublicHearing">05/12/2023</span>
+                	                    <br/>
+                                        <span id="lblDateCommentDeadLine">05/22/2023</span>
+                                        <br/>
+                                        <span id="lblDateInterimCommiteeHearing">06/13/2023</span>
+                                        <br/>
+                                        <span id="lblDateFilesSOS">06/13/2023</span>
+                                        <br/>
+                                        <span id="lblDateRulesEffective">07/03/2023</span>
+                                    </div>
+          
+		  		                    <div id="agencycontact"> 
+				                        <span id="lblContact">Agency Contact: </span>
+				                        <span id="lblNameContact">Teresa Schulte</span> 
+				                        <span id="lblNameEmail">mail to: DSSAdminRules@STATE.SD.US</span> 
+					                    
+                                        
+				                        
+				                    </div>
+                                </div>		      
+                            </div>           
+                        </div>    
+	                </div> 
+                </div> 
+                
+            </div>	
+            <div id="footer">
+    <div id="footercontent">
+         	<div class="footermenuitems">
+
+   
+              <strong><a href="/default.aspx" target="_blank">Home</a></strong>
+              <strong>|</strong>
+              
+              <strong><a href="/archive.aspx" target="_blank">Archive</a></strong>
+              <strong>|</strong>
+                  
+              <strong><a href="https://sdlegislature.gov/Rules/Administrative" target="_blank">Administrative Rules List (LRC)</a></strong>
+              <strong>|</strong>
+              
+              <strong><a href="/Admin/ruleslist.aspx" target="_blank">Administrator Login</a></strong>
+              <strong>|</strong>
+        
+              <strong><a href="https://www.sd.gov/cs" target="_blank">State Homepage</a></strong>
+            
+                <br clear="all" />
+                <br clear="all" />
+      
+        
+              &copy; Copyright 2026 - State of South Dakota
+              <br clear="all" />
+    
+              <a href="https://www.sd.gov/cs/kb?id=kb_article_view&sysparm_article=KB0010219" target="_blank">Accessibility</a> &nbsp;|&nbsp; 
+              <a href="https://www.sd.gov/cs/kb?id=kb_article_view&sysparm_article=KB0010220" target="_blank">Privacy</a> &nbsp;|&nbsp; 
+              <a href="https://www.sd.gov/cs/kb?id=kb_article_view&sysparm_article=KB0010221" target="_blank">Disclaimer</a>
+        
+
+        </div>
+                
+        
+    </div>
+</div>
+
+
+            <script type="text/javascript">
+                var MenuBar1 = new Spry.Widget.MenuBar("MenuBar1", { imgRight: "SpryAssets/SpryMenuBarRightHover.gif" });
+            </script>
+
+        </form>
+    </body>
+</html>
