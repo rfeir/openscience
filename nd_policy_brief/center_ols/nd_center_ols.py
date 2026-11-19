@@ -1620,7 +1620,7 @@ def demographic_female_lfpr(csv_path=None):
   nd_rate = float(data.loc[data.state.eq("North Dakota"), "female_lfpr_2025"].iloc[0])
   if not np.isclose(nd_rate, 0.652, atol=1e-10):
     print(f"WARNING: Published BLS input gives ND {100 * nd_rate:.1f}% rather than "
-          "the published 65.2%; review the source file.")
+          "the published 65.1%; review the source file.")
   print(f"Published BLS Table 14 female LFPR: {path}")
   return data.sort_values("female_lfpr_2025_rank_51").reset_index(drop=True)
 
