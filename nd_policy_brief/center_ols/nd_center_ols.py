@@ -132,7 +132,6 @@ def stars(p):
   return "***" if p < .01 else "**" if p < .05 else "*" if p < .10 else ""
 
 
-# %% LOAD COSTS; INTERPOLATE FLAGGED AND MISSING PRICES --------------------
 # %% LOAD ORIGINAL CENTER PRICES AND CONVERT TO REAL 2025 DOLLARS -------
 # The source scraper generates nominal reported prices, not r_* columns.
 # No imputation flags, interpolations or clean/linear price treatments here.
@@ -377,6 +376,133 @@ for age in AGES:
     plt.show()
     plt.close(fig)
     print(f"Saved diagnostics: {stem}")
+
+
+# %% TEACHER EDUCATION LINEARITY AND SPECIFICATION TESTS --------------------
+# Exploratory diagnostic only; retain the baseline models for all estimates.
+EDUCATION_DIR = DIAGNOSTIC_DIR / "teacher_education"
+EDUCATION_DIR.mkdir(parents=True, exist_ok=True)
+education_tests = []
+education_coefficients = []
+education_residuals = []
+rng = np.random.default_rng(42)
+fig, axes = plt.subplots(1, 2, figsize=(12, 5), facecolor="white")
+
+for ax, age in zip(axes, AGES):
+  linear = models[age, "original"]
+  beta = float(linear.params["ed_t"])
+  sample = linear.model.data.frame.loc[linear.model.data.row_labels].copy()
+  sample["ed_t"] = sample["ed_t"].astype(float)
+  x = sample["ed_t"].to_numpy()
+  residual = np.asarray(linear.resid)
+  partial_resid = residual + beta * x
+  data = sample[["state", "year", "ed_t"]].copy()
+  data["age"] = age
+  data["residual"] = residual
+  data["partial_residual"] = partial_resid
+  data["linear_component"] = beta * x
+  education_residuals.append(data)
+  grouped = data.groupby("ed_t")["partial_residual"].agg(
+    ["mean", "median", "std", "count"]
+  )
+  grouped["state_clusters"] = data.groupby("ed_t").state.nunique()
+  grouped["linear_component"] = beta * grouped.index
+  grouped["departure_from_linearity"] = grouped["mean"] - grouped["linear_component"]
+  grouped.to_csv(EDUCATION_DIR / f"education_category_means_{age}.csv")
+
+  ax.set_facecolor("white")
+  ax.scatter(x + rng.uniform(-.12, .12, len(x)), partial_resid,
+             color=COLORS[age], alpha=.25, s=22)
+  xs = np.linspace(x.min(), x.max(), 200)
+  ax.plot(xs, beta * xs, color="black", linestyle="--", linewidth=1.5,
+          label="Linear specification")
+  ax.plot(grouped.index, grouped["mean"], color=COLORS[age], marker="o",
+          markersize=7, linewidth=2.5, label="Category means")
+  ax.set_xticks(grouped.index)
+  ax.set_xticklabels([f"{v:g}\n(n={int(grouped.loc[v, 'count'])})" for v in grouped.index])
+  ax.set(title=age.replace("_", " ").title(), xlabel="Teacher Education Code",
+         ylabel="Partial Residual (Log Price)")
+  ax.legend()
+  ax.grid(alpha=.2)
+
+  # Linear term plus K-2 indicators spans the unrestricted categorical model.
+  levels = np.sort(sample.ed_t.unique())
+  terms = []
+  for i, level in enumerate(levels[2:]):
+    term = f"ed_nonlinear_{i}"
+    sample[term] = sample.ed_t.eq(level).astype(int)
+    terms.append(term)
+  if not terms:
+    raise ValueError(f"{age}: insufficient education categories to test linearity")
+  nonlinear = smf.ols(FORMULA + " + " + " + ".join(terms), data=sample).fit(
+    cov_type="cluster", cov_kwds={"groups": sample.state}, use_t=True
+  )
+  if not np.array_equal(nonlinear.model.data.row_labels, linear.model.data.row_labels):
+    raise ValueError("Linear and categorical estimation samples differ")
+  test = nonlinear.wald_test(", ".join(f"{term} = 0" for term in terms),
+                             use_f=True, scalar=True)
+  education_tests.append({
+    "age": age, "observations": int(linear.nobs),
+    "state_clusters": sample.state.nunique(), "education_categories": len(levels),
+    "linear_adjusted_r2": linear.rsquared_adj,
+    "categorical_adjusted_r2": nonlinear.rsquared_adj,
+    "wald_f": float(test.statistic), "df_num": float(test.df_num),
+    "df_denom": float(test.df_denom), "p_value": float(test.pvalue),
+    "reject_linearity_5pct": bool(test.pvalue < .05),
+  })
+  ci = nonlinear.conf_int()
+  for term in nonlinear.params.index:
+    education_coefficients.append({
+      "age": age, "term": term, "estimate": nonlinear.params[term],
+      "se_cluster": nonlinear.bse[term], "p_value": nonlinear.pvalues[term],
+      "ci_low": ci.loc[term, 0], "ci_high": ci.loc[term, 1],
+    })
+  print(f"\n{age.upper()} — TEACHER EDUCATION LINEARITY")
+  print(grouped.round(4).to_string())
+  print(nonlinear.summary())
+  (EDUCATION_DIR / f"categorical_regression_{age}.txt").write_text(
+    nonlinear.summary().as_text(), encoding="utf-8"
+  )
+  ax.text(.5, -.24, f"Wald F = {float(test.statistic):.4f}; p = {float(test.pvalue):.4f}",
+          transform=ax.transAxes, ha="center", va="top", fontsize=10)
+
+fig.tight_layout()
+for ext in ("png", "pdf"):
+  fig.savefig(EDUCATION_DIR / f"teacher_education_partial_residuals.{ext}",
+              dpi=300, facecolor="white", bbox_inches="tight")
+plt.show()
+plt.close(fig)
+education_linearity = pd.DataFrame(education_tests)
+education_linearity.to_csv(EDUCATION_DIR / "teacher_education_linearity_tests.csv", index=False)
+pd.DataFrame(education_coefficients).to_csv(
+  EDUCATION_DIR / "categorical_regression_coefficients.csv", index=False)
+pd.concat(education_residuals, ignore_index=True).to_csv(
+  EDUCATION_DIR / "teacher_education_partial_residuals.csv", index=False)
+print("\nTEACHER EDUCATION LINEARITY TESTS")
+print(education_linearity.round(4).to_string(index=False))
+
+education_notes = [
+  "# Teacher education specification diagnostic", "",
+  "Exploratory partial residual plots and state-clustered Wald tests compare",
+  "linear and unrestricted categorical specifications on identical samples.", "",
+]
+for row in education_linearity.itertuples(index=False):
+  conclusion = "Reject linearity" if row.reject_linearity_5pct else "Fail to reject linearity"
+  education_notes.extend([
+    f"## {row.age.replace('_', ' ').title()}", "",
+    f"- Observations: {row.observations}; state clusters: {row.state_clusters}",
+    f"- Linear adjusted R²: {row.linear_adjusted_r2:.4f}",
+    f"- Categorical adjusted R²: {row.categorical_adjusted_r2:.4f}",
+    f"- Wald F({row.df_num:g}, {row.df_denom:g}): {row.wald_f:.4f}",
+    f"- p-value: {row.p_value:.4f}", f"- Conclusion at 5%: {conclusion}", "",
+  ])
+education_notes.extend([
+  "Failure to reject does not establish linearity. Sparse higher categories",
+  "limit statistical power and may make clustered inference unreliable.",
+  "The original baseline models and education codes are unchanged.", "",
+])
+(EDUCATION_DIR / "teacher_education_methodology.md").write_text(
+  "\n".join(education_notes), encoding="utf-8")
 
 
 # %% REGRESSION CORRELATION MATRICES ---------------------------------------
@@ -1618,7 +1744,7 @@ def demographic_female_lfpr(csv_path=None):
     data["female_lfpr_source_url"] = BLS_FEMALE_LFPR_SOURCE
 
   nd_rate = float(data.loc[data.state.eq("North Dakota"), "female_lfpr_2025"].iloc[0])
-  if not np.isclose(nd_rate, 0.652, atol=1e-10):
+  if not np.isclose(nd_rate, 0.651, atol=1e-10):
     print(f"WARNING: Published BLS input gives ND {100 * nd_rate:.1f}% rather than "
           "the published 65.1%; review the source file.")
   print(f"Published BLS Table 14 female LFPR: {path}")
